@@ -33,13 +33,14 @@ impl Kind {
 }
 
 #[repr(u8)]
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Default, EnumIter, EnumString)]
+#[derive(Debug, Display, PartialEq, Eq, Hash, Clone, Copy, Default, EnumIter, EnumString)]
 #[strum(ascii_case_insensitive)]
 pub enum Consumable {
 	#[default]
 	Cookie,
 	LifePotion,
 	CactusPotion,
+	ManaPotion,
 	GinsengSoup,
 	SnowBerryMash,
 	MushroomSpit,
@@ -77,7 +78,7 @@ pub enum Weapon {
 }
 
 #[repr(u8)]
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Default, EnumIter, EnumString)]
+#[derive(Debug, Display, PartialEq, Eq, Hash, Clone, Copy, Default, EnumIter, EnumString)]
 #[strum(ascii_case_insensitive)]
 pub enum Resource {
 	#[default]
@@ -112,7 +113,7 @@ pub enum Resource {
 }
 
 #[repr(u8)]
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Default, EnumIter, EnumString)]
+#[derive(Debug, Display, PartialEq, Eq, Hash, Clone, Copy, Default, EnumIter, EnumString)]
 #[strum(ascii_case_insensitive)]
 pub enum Candle {
 	#[default]
@@ -121,7 +122,7 @@ pub enum Candle {
 }
 
 #[repr(u8)]
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Default, EnumIter, EnumString)]
+#[derive(Debug, Display, PartialEq, Eq, Hash, Clone, Copy, Default, EnumIter, EnumString)]
 #[strum(ascii_case_insensitive)]
 pub enum Quest {
 	#[default]
@@ -138,7 +139,7 @@ pub enum Quest {
 }
 
 #[repr(u8)]
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Default, EnumIter, EnumString)]
+#[derive(Debug, Display, PartialEq, Eq, Hash, Clone, Copy, Default, EnumIter, EnumString)]
 #[strum(ascii_case_insensitive)]
 pub enum Special {
 	#[default]

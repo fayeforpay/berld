@@ -2,7 +2,7 @@ use std::mem::transmute;
 
 use nalgebra::Point3;
 use num_enum::IntoPrimitive;
-use strum_macros::{EnumCount, EnumDiscriminants, EnumIter, EnumString};
+use strum_macros::{EnumCount, EnumDiscriminants, EnumIter, EnumString, Display, FromRepr};
 use tokio::io;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
@@ -35,7 +35,7 @@ impl Validate<Item> for Validator {
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, EnumIter, EnumDiscriminants, EnumString)]
+#[derive(Debug, Display, Clone, Copy, Default, PartialEq, Eq, Hash, EnumIter, EnumDiscriminants, EnumString)]
 #[strum(ascii_case_insensitive)]
 pub enum Kind {
 	#[default]
@@ -68,7 +68,7 @@ pub enum Kind {
 }
 
 #[repr(i8)]
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Default, EnumIter, EnumString)]
+#[derive(Debug, Display, PartialEq, Eq, Hash, Clone, Copy, Default, EnumIter, EnumString, FromRepr)]
 #[strum(ascii_case_insensitive)]
 pub enum Material {
 	#[default]

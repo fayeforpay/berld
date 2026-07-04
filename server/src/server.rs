@@ -366,6 +366,7 @@ async fn send_existing_creatures(server: &Server, player: &Player) {
 		.await;
 	
 	server.addons.npcs.load_npcs(player).await;
+	server.addons.shop.shop_keeper(player).await;
 }
 
 fn configure_stream(stream: TcpStream) -> io::Result<(BufReader<OwnedReadHalf>, WriteHalf<SimplexStream>, JoinHandle<()>)>{
