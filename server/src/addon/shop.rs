@@ -15,7 +15,7 @@ use protocol::packet::creature_update::equipment::Slot;
 use protocol::packet::world_update::{Pickup, sound};
 use protocol::packet::WorldUpdate;
 use protocol::packet::CreatureUpdate;
-use protocol::utils::constants::{materials, SIZE_BLOCK};
+use protocol::utils::constants::{materials, SIZE_BLOCK, SIZE_ZONE};
 use protocol::utils::constants::rarity::*;
 use protocol::utils::flagset::FlagSet;
 
@@ -25,8 +25,6 @@ use crate::server::Server;
 
 const SHOP_CENTER: Point3<i64> = Point3::new(550361514520, 550354653448, 5498473);
 const SHOP_RADIUS: i64 = SIZE_BLOCK * 15;
-const ZONE_X: i32 = 32804;
-const ZONE_Y: i32 = 32803;
 const SHOP_INDEX: i32 = 1000;
 const SHOP_ID: i64 = 100000;
 const KEEPER_INDEX: i32 = 2000;
@@ -75,7 +73,10 @@ impl ItemShop {
             race: Some(Race::Bandit),
             name: Some("Item\nShop".into()),
             position: Some(self.shop_center),
-            zone_data_index: Some(Point3::new(ZONE_X, ZONE_Y, KEEPER_INDEX)),
+            zone_data_index: Some(Point3::new(
+                (self.shop_center.x / SIZE_ZONE) as i32,
+                (self.shop_center.y / SIZE_ZONE) as i32,
+                KEEPER_INDEX)),
             ..Default::default()
         };
 
@@ -85,7 +86,7 @@ impl ItemShop {
     pub async fn interaction(&self, server: &Server, player: &Player, index: Point3<i32>) {
         self.cleanup_stale_sessions(server).await;
 
-        if index == Point3::new(ZONE_X, ZONE_Y, KEEPER_INDEX) {
+        if index == Point3::new((self.shop_center.x / SIZE_ZONE) as i32, (self.shop_center.y / SIZE_ZONE) as i32, KEEPER_INDEX) {
             play_sound_at_player(player, sound::Kind::CraftProc, 1.0, 1.0).await;
             self.reset_session(player).await;
             self.update_shop(player).await;
@@ -233,7 +234,10 @@ fn shop_npcs(center: Point3<i64>, radius: i64, options: &[i32], state: &ShopStat
                 health: Some(0.0001),
                 rotation: Some(EulerAngles { pitch: 0.0, roll: 0.0, yaw }),
                 position: Some(Point3::new(x.round() as i64, y.round() as i64, center.z)),
-                zone_data_index: Some(Point3::new(ZONE_X, ZONE_Y, SHOP_INDEX + option)),
+                zone_data_index: Some(Point3::new(
+                    (x.round() as i64 / SIZE_ZONE) as i32,
+                    (y.round() as i64 / SIZE_ZONE) as i32,
+                    SHOP_INDEX + option)),
                 equipment: Some(equipment),
                 ..Default::default()
             }
