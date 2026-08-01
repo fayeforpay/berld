@@ -45,6 +45,7 @@ impl CommandManager {
 		manager.register(Team);
 		manager.register(Act);
 		manager.register(Heal);
+		manager.register(Emote);
 
 		Ok(manager)
 	}

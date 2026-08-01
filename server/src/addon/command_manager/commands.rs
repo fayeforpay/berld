@@ -16,6 +16,7 @@ mod test;
 mod team;
 mod act;
 mod heal;
+mod emote;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Default)]
 pub struct Who;
@@ -60,3 +61,6 @@ pub struct Act;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Default)]
 pub struct Heal;
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Default)]
+pub struct Emote;
