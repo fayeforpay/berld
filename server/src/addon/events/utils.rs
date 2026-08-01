@@ -1,4 +1,5 @@
 use std::f64::consts::PI;
+use std::sync::Arc;
 
 use config::{Config, ConfigError};
 use rand::random;
@@ -10,6 +11,9 @@ use protocol::packet::common::Hitbox;
 use protocol::packet::creature_update::{Appearance, AppearanceFlag};
 use protocol::utils::constants::SIZE_BLOCK;
 use protocol::utils::flagset::FlagSet;
+
+use crate::server::player::Player;
+use crate::server::Server;
 
 pub const YAW_OFFSET: f64 = 90.0;
 pub const NAME_OVERFLOW: usize = 15;
@@ -35,6 +39,16 @@ pub fn is_in_zone(position: Point3<i64>, center: Point3<i64>, radius: i64) -> bo
     let radius = i128::from(radius);
 
     dx * dx + dy * dy + dz * dz <= radius * radius
+}
+
+pub async fn find_players_by_distance(server: &Server, center: Point3<i64>, radius: i64) -> Vec<Arc<Player>> {
+    let mut in_range = Vec::new();
+    for player in server.players.read().await.iter() {
+        if is_in_zone(player.character.read().await.position, center, radius) {
+            in_range.push(Arc::clone(player))
+        }
+    }
+    in_range
 }
 
 pub fn appearance_invisible() -> Appearance {

@@ -20,7 +20,7 @@ use protocol::utils::constants::{SIZE_BLOCK, SIZE_ZONE, SIZE_SECTOR};
 use protocol::utils::constants::materials::by_item_kind;
 use protocol::utils::constants::rarity::{NORMAL, RARE, EPIC, LEGENDARY};
 
-use crate::addon::events::utils::{appearance_invisible, config_fallback, config_optional, creatures_circular, is_in_zone, pick_from, NAME_OVERFLOW, RENDER_DISTANCE_CREATURE};
+use crate::addon::events::utils::{appearance_invisible, config_fallback, config_optional, creatures_circular, is_in_zone, find_players_by_distance, pick_from, NAME_OVERFLOW, RENDER_DISTANCE_CREATURE};
 use crate::addon::play_sound_at_player;
 use crate::server::{Server, player::Player, utils::give_xp};
 use crate::SERVER;
@@ -261,10 +261,8 @@ async fn send_pillar_name(center: Point3<i64>, name: String) {
         name: Some(name),
         ..Default::default()
     };
-    for player in SERVER.players.read().await.iter() {
-        if is_in_zone(player.character.read().await.position, center, RENDER_DISTANCE_CREATURE) {
-            player.send_ignoring(&update).await
-        }
+    for player in find_players_by_distance(&SERVER, center, RENDER_DISTANCE_CREATURE).await {
+        player.send_ignoring(&update).await
     }
 }
 
