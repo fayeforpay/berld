@@ -28,8 +28,9 @@ use protocol::packet::creature_update::Affiliation;
 use protocol::packet::world_update::loot::GroundItem;
 use protocol::packet::world_update::Sound;
 use protocol::packet::world_update::sound::Kind::*;
-use protocol::utils::constants::{SIZE_BLOCK, SIZE_ZONE};
+use protocol::utils::constants::SIZE_BLOCK;
 use protocol::utils::io_extensions::{ReadPacket, WriteArbitrary, WritePacket};
+use protocol::utils::zone_of;
 
 use crate::addon::{Addons, announce_join_leave};
 use crate::addon::pvp::map_head;
@@ -219,7 +220,7 @@ impl Server {
 	}
 
 	pub async fn add_drop(&self, item: Item, position: Point3<i64>, rotation: f32) {
-		let zone = position.xy().map(|scalar| (scalar / SIZE_ZONE) as i32);
+		let zone = zone_of(position);
 
 		let mut loot = self.loot.write().await;
 		let zone_loot = loot.entry(zone).or_insert(vec![]);
