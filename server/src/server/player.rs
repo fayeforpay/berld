@@ -6,13 +6,20 @@ use std::sync::atomic::AtomicBool;
 use tokio::io::{self, AsyncWriteExt as _, SimplexStream, WriteHalf};
 use tokio::sync::{oneshot, RwLock};
 
+use protocol::nalgebra::Point2;
 use protocol::packet::{ChatMessageFromServer, FromServer};
 use protocol::packet::common::CreatureId;
 use protocol::utils::io_extensions::WritePacket;
+use protocol::utils::zone_of;
 use protocol::WriteCwData;
 
 use crate::server::creature::Creature;
 use crate::server::player::addon_data::AddonData;
+
+// current and adjacent zones revealead to the player client-side (limited by max render distance)
+pub const ZONE_DATA_RADIUS: i32 = 1;
+// any terrain beyond this radius is guaranteed to be unloaded client-side
+pub const ZONE_RETENTION_RADIUS: i32 = 3;
 
 #[derive(Debug)]
 pub struct Player {
@@ -66,6 +73,12 @@ impl Player {
 
 		writer.write_all(data).await?;
 		writer.flush().await
+	}
+
+	pub async fn is_near(&self, zone: Point2<i32>) -> bool {
+		let distance = zone_of(self.character.read().await.position) - zone;
+
+		distance.x.abs().max(distance.y.abs()) <= ZONE_DATA_RADIUS
 	}
 
 	pub async fn notify(&self, message: impl Into<String>) {

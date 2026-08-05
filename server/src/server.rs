@@ -197,24 +197,47 @@ impl Server {
 	pub async fn broadcast<Packet: FromServer>(&self, packet: &Packet, player_to_skip: Option<&Player>)
 		where Vec<u8>: WriteCwData<Packet>//todo: specialization could obsolete this
 	{
-		let mut data = vec![];
-		
-		data.write_packet(packet).await.expect("failed to serialize a packet in-memory");
-		
-		_ = self.players
+		let recipients = self.players
 			.read()
 			.await
 			.iter()
 			.filter(|player| !player_to_skip.is_some_and(|pts| ptr::eq(player.as_ref(), pts)))
-			.map(async |player| {
-				let mut writer = player
-					.writer
-					.write()
-					.await;
+			.map(Arc::clone)
+			.collect();
 
-				writer.write_all(&data).await?;
-				writer.flush().await
-			})
+		self.send_to_all(packet, recipients).await;
+	}
+
+	pub async fn broadcast_near<Packet: FromServer>(&self, packet: &Packet, zone: Point2<i32>)
+		where Vec<u8>: WriteCwData<Packet>
+	{
+		let candidates = self.players
+			.read()
+			.await
+			.iter()
+			.map(Arc::clone)
+			.collect::<Vec<_>>();
+
+		let mut recipients = vec![];
+		for player in candidates {
+			if player.is_near(zone).await {
+				recipients.push(player);
+			}
+		}
+
+		self.send_to_all(packet, recipients).await;
+	}
+
+	async fn send_to_all<Packet: FromServer>(&self, packet: &Packet, recipients: Vec<Arc<Player>>)
+		where Vec<u8>: WriteCwData<Packet>
+	{
+		let mut data = vec![];
+
+		data.write_packet(packet).await.expect("failed to serialize a packet in-memory");
+
+		_ = recipients
+			.iter()
+			.map(async |player| player.send_raw(&data).await)
 			.pipe(join_all)
 			.await;
 	}
@@ -237,15 +260,15 @@ impl Server {
 		zone_loot_copy[zone_loot.len() - 1].droptime = 500;
 		drop(loot);
 
-		self.broadcast(&WorldUpdate {
+		self.broadcast_near(&WorldUpdate {
 			loot: HashMap::from([(zone, zone_loot_copy)]),
 			sounds: vec![Sound::at(position, Drop)],
 			..Default::default()
-		}, None).await;
+		}, zone).await;
 
 		tokio::spawn(async move {
 			sleep(Duration::from_millis(500)).await;
-			SERVER.broadcast(&WorldUpdate::from(Sound::at(position, DropItem)), None).await;
+			SERVER.broadcast_near(&WorldUpdate::from(Sound::at(position, DropItem)), zone).await;
 		});
 	}
 
@@ -268,7 +291,7 @@ impl Server {
 		}
 		drop(drops_guard);
 
-		self.broadcast(&WorldUpdate::from((zone, zone_drops_owned)), None).await;
+		self.broadcast_near(&WorldUpdate::from((zone, zone_drops_owned)), zone).await;
 
 		Some(removed_drop.item)
 	}
