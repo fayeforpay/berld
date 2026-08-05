@@ -8,51 +8,43 @@ use protocol::rgb::RGB8;
 use protocol::packet::world_update::Block;
 use protocol::nalgebra::{Point2, Vector3};
 use protocol::packet::world_update::block::Kind::*;
-use tap::Pipe;
 
 mod vox;
 mod zox;
 
+const BLOCKS_PER_ZONE: i32 = (SIZE_ZONE / SIZE_BLOCK) as i32;
+
 pub struct Models {
-	models: Vec<(Point2<i32>, Vec<Block>)>
+	blocks_by_zone: HashMap<Point2<i32>, Vec<Block>>
 }
 
 impl Models {
 	pub fn new(config: &Config) -> Result<Self, ConfigError> {
-		Self {
-			models: config
-				.get::<HashMap<String, [i64; 3]>>("models")?
-				.into_iter()
-				.map(|(filename, pos)| {
-					let pos: Vector3<i64> = pos.into();
-					let zone = pos
-						.xy()
-						.div(SIZE_ZONE)
-						.cast::<i32>()
-						.into();
+		let mut blocks_by_zone: HashMap<Point2<i32>, Vec<Block>> = HashMap::new();
 
-					let mut blocks = parse_model(&filename);
-					let model_origin = pos
-						.div(SIZE_BLOCK)
-						.cast::<i32>();
+		for (filename, pos) in config.get::<HashMap<String, [i64; 3]>>("models")? {
+			let pos: Vector3<i64> = pos.into();
+			let model_origin = pos
+				.div(SIZE_BLOCK)
+				.cast::<i32>();
 
-					for block in &mut blocks {
-						block.position += model_origin;
-					}
+			for mut block in parse_model(&filename) {
+				block.position += model_origin;
+				blocks_by_zone
+					.entry(block.position.xy().map(|scalar| scalar.div_euclid(BLOCKS_PER_ZONE)))
+					.or_default()
+					.push(block);
+			}
+		}
 
-					(zone, blocks)
-				})
-				.collect()
-		}.pipe(Ok)
+		Ok(Self { blocks_by_zone })
 	}
 
 	pub fn blocks_in(&self, requested_zone: Point2<i32>) -> Vec<Block> {
-		self.models
-			.iter()
-			.filter(|(zone, _blocks)| *zone == requested_zone)
-			.flat_map(|(_zone, blocks)| blocks)
+		self.blocks_by_zone
+			.get(&requested_zone)
 			.cloned()
-			.collect()
+			.unwrap_or_default()
 	}
 }
 
