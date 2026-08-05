@@ -44,6 +44,7 @@ impl Server {
 				Some(ZoneState::Revealed(at)) if at.elapsed() < STALE_RETRY_GRACE => return,
 				_ => {}
 			}
+			// claimed in the same lock as the check
 			addon_data.zone_states.insert(zone, ZoneState::Pending);
 		}
 

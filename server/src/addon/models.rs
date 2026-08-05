@@ -55,7 +55,7 @@ impl Models {
 			packet
 				.write_packet(&WorldUpdate::from(blocks.clone()))
 				.await
-				.expect("failed to serialize world update");
+				.expect("failed to serialize a world update in-memory");
 
 			packets_by_zone.insert(*zone, packet.into());
 		}
