@@ -1,4 +1,4 @@
-mod addon_data;
+pub mod addon_data;
 
 use std::net::SocketAddr;
 use std::sync::atomic::AtomicBool;
@@ -14,9 +14,9 @@ use protocol::utils::zone_of;
 use protocol::WriteCwData;
 
 use crate::server::creature::Creature;
-use crate::server::player::addon_data::AddonData;
+use crate::server::player::addon_data::{AddonData, ZoneState};
 
-// current and adjacent zones revealead to the player client-side (limited by max render distance)
+// current and adjacent zones revealed to the player client-side (limited by max render distance)
 pub const ZONE_DATA_RADIUS: i32 = 1;
 // any terrain beyond this radius is guaranteed to be unloaded client-side
 pub const ZONE_RETENTION_RADIUS: i32 = 3;
@@ -79,6 +79,15 @@ impl Player {
 		let distance = zone_of(self.character.read().await.position) - zone;
 
 		distance.x.abs().max(distance.y.abs()) <= ZONE_DATA_RADIUS
+	}
+
+	// client readiness for zone update; pending delivery = server knows client is not ready
+	// live updates must not jump the queue (another player dropping loot while client
+	// is waiting for a zone update from the server would result in block updates getting lost)
+	pub async fn is_ready_for(&self, zone: Point2<i32>) -> bool {
+		self.is_near(zone).await
+			&& !matches!(self.addon_data.read().await.zone_states.get(&zone),
+			Some(ZoneState::Pending))
 	}
 
 	pub async fn notify(&self, message: impl Into<String>) {
