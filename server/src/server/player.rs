@@ -3,7 +3,7 @@ mod addon_data;
 use std::net::SocketAddr;
 use std::sync::atomic::AtomicBool;
 
-use tokio::io::{self, SimplexStream, WriteHalf};
+use tokio::io::{self, AsyncWriteExt as _, SimplexStream, WriteHalf};
 use tokio::sync::{oneshot, RwLock};
 
 use protocol::packet::{ChatMessageFromServer, FromServer};
@@ -59,6 +59,13 @@ impl Player {
 	{
 		#[expect(let_underscore_drop, clippy::let_underscore_must_use, reason="deliberate")]
 		let _ = self.send(packet).await;
+	}
+
+	pub async fn send_raw(&self, data: &[u8]) -> io::Result<()> {
+		let mut writer = self.writer.write().await;
+
+		writer.write_all(data).await?;
+		writer.flush().await
 	}
 
 	pub async fn notify(&self, message: impl Into<String>) {

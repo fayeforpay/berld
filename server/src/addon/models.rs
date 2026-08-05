@@ -1,13 +1,16 @@
 use std::ops::Div as _;
 use std::collections::HashMap;
 use std::path;
+use std::sync::{Arc, OnceLock};
 
 use config::{Config, ConfigError};
 use protocol::utils::constants::{SIZE_BLOCK, SIZE_ZONE};
 use protocol::rgb::RGB8;
+use protocol::packet::WorldUpdate;
 use protocol::packet::world_update::Block;
 use protocol::nalgebra::{Point2, Vector3};
 use protocol::packet::world_update::block::Kind::*;
+use protocol::utils::io_extensions::WritePacket;
 
 mod vox;
 mod zox;
@@ -15,7 +18,8 @@ mod zox;
 const BLOCKS_PER_ZONE: i32 = (SIZE_ZONE / SIZE_BLOCK) as i32;
 
 pub struct Models {
-	blocks_by_zone: HashMap<Point2<i32>, Vec<Block>>
+	blocks_by_zone: HashMap<Point2<i32>, Vec<Block>>,
+	packets_by_zone: OnceLock<HashMap<Point2<i32>, Arc<[u8]>>>
 }
 
 impl Models {
@@ -37,14 +41,36 @@ impl Models {
 			}
 		}
 
-		Ok(Self { blocks_by_zone })
+		Ok(Self {
+			blocks_by_zone,
+			packets_by_zone: OnceLock::new()
+		})
 	}
 
-	pub fn blocks_in(&self, requested_zone: Point2<i32>) -> Vec<Block> {
-		self.blocks_by_zone
+	pub async fn prepare(&self) {
+		let mut packets_by_zone = HashMap::with_capacity(self.blocks_by_zone.len());
+
+		for (zone, blocks) in &self.blocks_by_zone {
+			let mut packet = vec![];
+			packet
+				.write_packet(&WorldUpdate::from(blocks.clone()))
+				.await
+				.expect("failed to serialize world update");
+
+			packets_by_zone.insert(*zone, packet.into());
+		}
+
+		assert!(
+			self.packets_by_zone.set(packets_by_zone).is_ok(),
+			"models prepared twice"
+		);
+	}
+
+	pub fn packet_for(&self, requested_zone: Point2<i32>) -> Option<Arc<[u8]>> {
+		self.packets_by_zone
+			.get()?
 			.get(&requested_zone)
-			.cloned()
-			.unwrap_or_default()
+			.map(Arc::clone)
 	}
 }
 

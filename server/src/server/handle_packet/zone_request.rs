@@ -9,6 +9,10 @@ impl HandlePacket<AreaRequest<Zone>> for Server {
 	async fn handle_packet(&self, source: &Player, packet: AreaRequest<Zone>) {
 		let zone = packet.0;
 
+		if let Some(blocks) = self.addons.models.packet_for(zone) {
+			_ = source.send_raw(&blocks).await;
+		}
+
 		let loot_in_zone = self.loot
 			.read().await
 			.get(&zone)
@@ -20,7 +24,6 @@ impl HandlePacket<AreaRequest<Zone>> for Server {
 		// p48 is unsafe, so empty loot updates are sent for empty zones instead
 		let acknowledgment = WorldUpdate {
 			loot: [(zone, loot_in_zone)].into(),
-			blocks: self.addons.models.blocks_in(zone),
 			..Default::default()
 		};
 
