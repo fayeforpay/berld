@@ -220,7 +220,7 @@ impl Server {
 
 		let mut recipients = vec![];
 		for player in candidates {
-			if player.is_near(zone).await {
+			if player.is_ready_for(zone).await {
 				recipients.push(player);
 			}
 		}
