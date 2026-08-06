@@ -163,22 +163,26 @@ impl Server {
 			|| self.loot.read().await.contains_key(&zone)
 	}
 
+	pub async fn prune_zone_states(&self, player: &Player, center: Point2<i32>) {
+		player
+			.addon_data
+			.write()
+			.await
+			.zone_states
+			.retain(|zone, state| match state {
+				ZoneState::Awaited(_) | ZoneState::Pending =>
+					chebyshev_distance(*zone, center) <= ZONE_DATA_RADIUS,
+				ZoneState::Revealed(_) =>
+					chebyshev_distance(*zone, center) <= ZONE_RETENTION_RADIUS
+			});
+	}
+
 	pub fn schedule_neighborhood_reveal(&self, player_id: CreatureId, center: Point2<i32>) {
 		tokio::spawn(async move {
 			let Some(player) = SERVER.find_player_by_id(player_id).await
 			else { return };
 
-			player
-				.addon_data
-				.write()
-				.await
-				.zone_states
-				.retain(|zone, state| match state {
-					ZoneState::Awaited(_) | ZoneState::Pending =>
-						chebyshev_distance(*zone, center) <= ZONE_DATA_RADIUS,
-					ZoneState::Revealed(_) =>
-						chebyshev_distance(*zone, center) <= ZONE_RETENTION_RADIUS
-				});
+			SERVER.prune_zone_states(&player, center).await;
 
 			if SERVER.addons.models.packet_for(center).is_some() {
 				player
